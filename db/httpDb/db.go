@@ -16,13 +16,37 @@ package httpDb
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/magiconair/properties"
+	"github.com/pingcap/go-ycsb/pkg/ycsb"
 	"net/http"
-	"net/url"
+)
+
+// http properties
+const (
+	httpDomain = "domain"
+	httpPort   = "port"
 )
 
 type httpDB struct {
-	domain url.URL
+	p      *properties.Properties
+	domain string
+	port   string
 	conn   *http.Client
+}
+
+type httpDBCreator struct{}
+
+func (httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
+	db := new(httpDB)
+
+	db.p = p
+	db.domain = p.GetString(httpDomain, "localhost")
+	db.port = p.GetString(httpPort, "8090")
+
+	db.conn = &http.Client{}
+
+	return db, nil
 }
 
 // Close closes the database layer.
@@ -32,18 +56,31 @@ func (h httpDB) Close() error {
 
 // InitThread initializes the state associated to the goroutine worker.
 // The Returned context will be passed to the following usage.
-func InitThread(ctx context.Context, threadID int, threadCount int) context.Context {
+func (h httpDB) InitThread(ctx context.Context, threadID int, threadCount int) context.Context {
 	return ctx
 }
 
 // CleanupThread cleans up the state when the worker finished.
-func CleanupThread(ctx context.Context) {}
+func (h httpDB) CleanupThread(ctx context.Context) {}
 
 // Read reads a record from the database and returns a map of each field/value pair.
 // table: The name of the table.
 // key: The record key of the record to read.
 // fields: The list of fields to read, nil|empty for reading all.
-func Read(ctx context.Context, table string, key string, fields []string) (map[string][]byte, error) {
+func (h httpDB) Read(ctx context.Context, table string, key string, fields []string) (map[string][]byte, error) {
+
+	tempURL := ""
+	if h.port == "" {
+		tempURL = fmt.Sprintf("%v/%v", h.domain, key)
+	} else {
+		tempURL = fmt.Sprintf("%v:%v/%v", h.domain, h.port, key)
+	}
+	resp, err := h.conn.Get(tempURL)
+	if err != nil {
+		return nil, err
+	}
+	println(resp)
+
 	return nil, nil
 }
 
@@ -52,7 +89,7 @@ func Read(ctx context.Context, table string, key string, fields []string) (map[s
 // startKey: The first record key to read.
 // count: The number of records to read.
 // fields: The list of fields to read, nil|empty for reading all.
-func Scan(ctx context.Context, table string, startKey string, count int, fields []string) ([]map[string][]byte, error) {
+func (h httpDB) Scan(ctx context.Context, table string, startKey string, count int, fields []string) ([]map[string][]byte, error) {
 	return nil, errors.New("scan not implemented")
 }
 
@@ -61,7 +98,7 @@ func Scan(ctx context.Context, table string, startKey string, count int, fields 
 // table: The name of the table.
 // key: The record key of the record to update.
 // values: A map of field/value pairs to update in the record.
-func Update(ctx context.Context, table string, key string, values map[string][]byte) error {
+func (h httpDB) Update(ctx context.Context, table string, key string, values map[string][]byte) error {
 	return nil
 }
 
@@ -70,13 +107,18 @@ func Update(ctx context.Context, table string, key string, values map[string][]b
 // table: The name of the table.
 // key: The record key of the record to insert.
 // values: A map of field/value pairs to insert in the record.
-func Insert(ctx context.Context, table string, key string, values map[string][]byte) error {
+func (h httpDB) Insert(ctx context.Context, table string, key string, values map[string][]byte) error {
 	return nil
 }
 
 // Delete deletes a record from the database.
 // table: The name of the table.
 // key: The record key of the record to delete.
-func Delete(ctx context.Context, table string, key string) error {
+func (h httpDB) Delete(ctx context.Context, table string, key string) error {
 	return errors.New("delete not implemented")
+}
+
+func init() {
+	fmt.Println("Registering httpDb...")
+	ycsb.RegisterDBCreator("httpDb", httpDBCreator{})
 }

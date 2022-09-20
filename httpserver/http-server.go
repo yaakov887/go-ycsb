@@ -49,15 +49,16 @@ func fauxDbPut(key string, value int) int {
 }
 
 func domainParameters(w http.ResponseWriter, req *http.Request) {
+	//debug lines to print the incoming request parameters
 	for name, headers := range req.Header {
 		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
+			fmt.Printf("%v: %v\n", name, h)
 		}
 	}
-	fmt.Fprintf(w, "Content Length: %v\n", req.ContentLength)
-	fmt.Fprintf(w, "Host: %v\n\n", req.Host)
+	fmt.Printf("Content Length: %v\n", req.ContentLength)
+	fmt.Printf("Host: %v\n\n", req.Host)
+	fmt.Printf("Method: %v\n", req.Method)
 
-	fmt.Fprintf(w, "Method: %v\n", req.Method)
 	req.ParseForm()
 	switch req.Method {
 	case "GET":
@@ -67,10 +68,10 @@ func domainParameters(w http.ResponseWriter, req *http.Request) {
 		}
 	case "PUT":
 		for key, value := range req.Form {
-			tempval, err := strconv.Atoi(value[0])
+			tempVal, err := strconv.Atoi(value[0])
 			if err == nil {
 				fmt.Fprintf(w, "Param Key:\t%v\n", key)
-				fmt.Fprintf(w, "Put Value:\t%v\n", fauxDbPut(key, tempval))
+				fmt.Fprintf(w, "Put Value:\t%v\n", fauxDbPut(key, tempVal))
 			}
 
 		}

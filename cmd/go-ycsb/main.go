@@ -72,6 +72,8 @@ import (
 	_ "github.com/pingcap/go-ycsb/db/elasticsearch"
 	// Register etcd
 	_ "github.com/pingcap/go-ycsb/db/etcd"
+	// Register httpDb
+	//_ "github.com/yaakov887/go-ycsb/db/httpDb"
 )
 
 var (
