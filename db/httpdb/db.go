@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package httpDb
+package httpdb
 
 import (
 	"context"
@@ -37,7 +37,7 @@ type httpDB struct {
 
 type httpDBCreator struct{}
 
-func (httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
+func (c httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
 	db := new(httpDB)
 
 	db.p = p
@@ -45,8 +45,15 @@ func (httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
 	db.port = p.GetString(httpPort, "8090")
 
 	db.conn = &http.Client{}
+	fmt.Printf("%+v\n", db)
 
 	return db, nil
+	//return &httpDB{
+	//	p:      p,
+	//	domain: p.GetString(httpDomain, "localhost"),
+	//	port:   p.GetString(httpPort, "8090"),
+	//	conn:   &http.Client{},
+	//}, nil
 }
 
 // Close closes the database layer.
@@ -119,6 +126,6 @@ func (h httpDB) Delete(ctx context.Context, table string, key string) error {
 }
 
 func init() {
-	fmt.Println("Registering httpDb...")
-	ycsb.RegisterDBCreator("httpDb", httpDBCreator{})
+	fmt.Println("Registering httpdb...")
+	ycsb.RegisterDBCreator("httpdb", httpDBCreator{})
 }
