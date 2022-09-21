@@ -20,6 +20,7 @@ import (
 	"github.com/magiconair/properties"
 	"github.com/pingcap/go-ycsb/pkg/ycsb"
 	"net/http"
+	"net/url"
 )
 
 // http properties
@@ -56,6 +57,14 @@ func (c httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
 	//}, nil
 }
 
+func (h httpDB) GenerateURL(key string) string {
+	if h.port == "" {
+		return fmt.Sprintf("http://%v/%v", h.domain, key)
+	} else {
+		return fmt.Sprintf("http://%v:%v/%v", h.domain, h.port, key)
+	}
+}
+
 // Close closes the database layer.
 func (h httpDB) Close() error {
 	return nil
@@ -76,17 +85,15 @@ func (h httpDB) CleanupThread(ctx context.Context) {}
 // fields: The list of fields to read, nil|empty for reading all.
 func (h httpDB) Read(ctx context.Context, table string, key string, fields []string) (map[string][]byte, error) {
 
-	tempURL := ""
-	if h.port == "" {
-		tempURL = fmt.Sprintf("%v/%v", h.domain, key)
-	} else {
-		tempURL = fmt.Sprintf("%v:%v/%v", h.domain, h.port, key)
-	}
+	tempURL := h.GenerateURL(key)
+	fmt.Printf("%v\n", tempURL)
+
 	resp, err := h.conn.Get(tempURL)
+
 	if err != nil {
 		return nil, err
 	}
-	println(resp)
+	println(resp.Body)
 
 	return nil, nil
 }
@@ -106,6 +113,17 @@ func (h httpDB) Scan(ctx context.Context, table string, startKey string, count i
 // key: The record key of the record to update.
 // values: A map of field/value pairs to update in the record.
 func (h httpDB) Update(ctx context.Context, table string, key string, values map[string][]byte) error {
+	tempURL := h.GenerateURL(key)
+
+	tempValues := make(url.Values)
+	for k, v := range values {
+		tempValues.Add(k, string(v))
+	}
+	resp, err := h.conn.PostForm(tempURL, tempValues)
+	if err != nil {
+		return err
+	}
+	println(resp.Body)
 	return nil
 }
 
@@ -115,6 +133,19 @@ func (h httpDB) Update(ctx context.Context, table string, key string, values map
 // key: The record key of the record to insert.
 // values: A map of field/value pairs to insert in the record.
 func (h httpDB) Insert(ctx context.Context, table string, key string, values map[string][]byte) error {
+	tempURL := h.GenerateURL(key)
+	fmt.Printf("%v\n", tempURL)
+
+	tempValues := make(url.Values)
+	for k, v := range values {
+		tempValues.Add(k, string(v))
+	}
+	fmt.Printf("%+v\n", len(tempValues))
+	resp, err := h.conn.PostForm(tempURL, tempValues)
+	if err != nil {
+		return err
+	}
+	println(resp.Body)
 	return nil
 }
 
