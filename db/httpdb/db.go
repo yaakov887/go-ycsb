@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/magiconair/properties"
 	"github.com/pingcap/go-ycsb/pkg/ycsb"
+	"io"
 	"net/http"
-	"net/url"
 )
 
 // http properties
@@ -84,18 +84,23 @@ func (h httpDB) CleanupThread(ctx context.Context) {}
 // key: The record key of the record to read.
 // fields: The list of fields to read, nil|empty for reading all.
 func (h httpDB) Read(ctx context.Context, table string, key string, fields []string) (map[string][]byte, error) {
-
 	tempURL := h.GenerateURL(key)
-	fmt.Printf("%v\n", tempURL)
+	fmt.Printf("GET tempURL: %v\n", tempURL)
 
 	resp, err := h.conn.Get(tempURL)
 
 	if err != nil {
 		return nil, err
 	}
-	println(resp.Body)
-
-	return nil, nil
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err == nil {
+		//println(string(body))
+		readVal := make(map[string][]byte)
+		readVal[fields[0]] = body
+		return readVal, nil
+	}
+	return nil, err
 }
 
 // Scan scans records from the database.
@@ -113,17 +118,27 @@ func (h httpDB) Scan(ctx context.Context, table string, startKey string, count i
 // key: The record key of the record to update.
 // values: A map of field/value pairs to update in the record.
 func (h httpDB) Update(ctx context.Context, table string, key string, values map[string][]byte) error {
-	tempURL := h.GenerateURL(key)
-
-	tempValues := make(url.Values)
-	for k, v := range values {
-		tempValues.Add(k, string(v))
+	var tempVal string
+	for _, v := range values {
+		tempVal = string(v)
+		break
 	}
-	resp, err := h.conn.PostForm(tempURL, tempValues)
+	tempURL := h.GenerateURL(key)
+	tempURL = fmt.Sprintf("%v?value=%v", tempURL, tempVal)
+	fmt.Printf("PUT tempURL: %v\n", tempURL)
+
+	req, err := http.NewRequest("PUT", tempURL, nil)
+	_, err = h.conn.Do(req)
+
+	//tempValues := make(url.Values)
+	//for k, v := range values {
+	//	tempValues.Add(k, string(v))
+	//}
+	//resp, err := h.conn.PostForm(tempURL, tempValues)
 	if err != nil {
 		return err
 	}
-	println(resp.Body)
+	//println(resp.Body)
 	return nil
 }
 
@@ -133,19 +148,22 @@ func (h httpDB) Update(ctx context.Context, table string, key string, values map
 // key: The record key of the record to insert.
 // values: A map of field/value pairs to insert in the record.
 func (h httpDB) Insert(ctx context.Context, table string, key string, values map[string][]byte) error {
-	tempURL := h.GenerateURL(key)
-	fmt.Printf("%v\n", tempURL)
-
-	tempValues := make(url.Values)
-	for k, v := range values {
-		tempValues.Add(k, string(v))
+	var tempVal string
+	for _, v := range values {
+		tempVal = string(v)
+		break
 	}
-	fmt.Printf("%+v\n", len(tempValues))
-	resp, err := h.conn.PostForm(tempURL, tempValues)
+	tempURL := h.GenerateURL(key)
+	tempURL = fmt.Sprintf("%v?value=%v", tempURL, tempVal)
+	fmt.Printf("PUT tempURL: %v\n", tempURL)
+
+	req, err := http.NewRequest("PUT", tempURL, nil)
+	_, err = h.conn.Do(req)
+
 	if err != nil {
 		return err
 	}
-	println(resp.Body)
+	//println(resp.Body)
 	return nil
 }
 
