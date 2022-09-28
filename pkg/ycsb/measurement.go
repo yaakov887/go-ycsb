@@ -33,3 +33,10 @@ type Measurement interface {
 	// Info returns the MeasurementInfo of the measurement.
 	Info() MeasurementInfo
 }
+
+// MeasurementExt measures extended operations metrics
+type MeasurementExt interface {
+	MeasureExt(op string, start time.Time, end time.Time, key string, values []interface{})
+	SummaryExt() []string
+	InfoExt() MeasurementInfo
+}
