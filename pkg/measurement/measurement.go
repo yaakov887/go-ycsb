@@ -35,7 +35,7 @@ type measurement struct {
 	opMeasurement map[string]ycsb.Measurement
 }
 
-func (m *measurement) measure(op string, lan time.Duration) {
+func (m *measurement) measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
 	m.RLock()
 	opM, ok := m.opMeasurement[op]
 	m.RUnlock()
@@ -47,7 +47,7 @@ func (m *measurement) measure(op string, lan time.Duration) {
 		m.Unlock()
 	}
 
-	opM.Measure(lan)
+	opM.Measure(op, start, end, key, values)
 }
 
 func (m *measurement) output() {
@@ -131,9 +131,9 @@ func IsWarmUpFinished() bool {
 }
 
 // Measure measures the operation.
-func Measure(op string, lan time.Duration) {
+func Measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
 	if IsWarmUpFinished() {
-		globalMeasure.measure(op, lan)
+		globalMeasure.measure(op, start, end, key, values)
 	}
 }
 

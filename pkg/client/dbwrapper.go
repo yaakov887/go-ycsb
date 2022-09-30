@@ -27,14 +27,13 @@ type DbWrapper struct {
 	DB ycsb.DB
 }
 
-func measure(start time.Time, op string, err error) {
-	lan := time.Now().Sub(start)
+func measure(start time.Time, end time.Time, op string, key string, values []interface{}, err error) {
 	if err != nil {
-		measurement.Measure(fmt.Sprintf("%s_ERROR", op), lan)
+		measurement.Measure(fmt.Sprintf("%s_ERROR", op), start, end, key, values)
 		return
 	}
 
-	measurement.Measure(op, lan)
+	measurement.Measure(op, start, end, key, values)
 }
 
 func (db DbWrapper) Close() error {
@@ -51,124 +50,69 @@ func (db DbWrapper) CleanupThread(ctx context.Context) {
 
 func (db DbWrapper) Read(ctx context.Context, table string, key string, fields []string) (_ map[string][]byte, err error) {
 	start := time.Now()
-	defer func() {
-		measure(start, "READ", err)
-	}()
+	dbRead, err := db.DB.Read(ctx, table, key, fields)
+	end := time.Now()
+	var tempVals []interface{}
+	for _, dbVal := range dbRead {
+		tempVals = append(tempVals, dbVal)
+	}
+	measure(start, end, "READ", key, tempVals, err)
 
-	return db.DB.Read(ctx, table, key, fields)
+	return dbRead, err
 }
 
 func (db DbWrapper) BatchRead(ctx context.Context, table string, keys []string, fields []string) (_ []map[string][]byte, err error) {
-	batchDB, ok := db.DB.(ycsb.BatchDB)
-	if ok {
-		start := time.Now()
-		defer func() {
-			measure(start, "BATCH_READ", err)
-		}()
-		return batchDB.BatchRead(ctx, table, keys, fields)
-	}
-	for _, key := range keys {
-		_, err := db.DB.Read(ctx, table, key, fields)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return nil, nil
 }
 
 func (db DbWrapper) Scan(ctx context.Context, table string, startKey string, count int, fields []string) (_ []map[string][]byte, err error) {
-	start := time.Now()
-	defer func() {
-		measure(start, "SCAN", err)
-	}()
-
-	return db.DB.Scan(ctx, table, startKey, count, fields)
+	return nil, nil
 }
 
 func (db DbWrapper) Update(ctx context.Context, table string, key string, values map[string][]byte) (err error) {
 	start := time.Now()
+	var tempVals []interface{}
+	for _, pVal := range values {
+		tempVals = append(tempVals, pVal)
+	}
+
 	defer func() {
-		measure(start, "UPDATE", err)
+		measure(start, time.Now(), "UPDATE", key, tempVals, err)
 	}()
 
 	return db.DB.Update(ctx, table, key, values)
 }
 
 func (db DbWrapper) BatchUpdate(ctx context.Context, table string, keys []string, values []map[string][]byte) (err error) {
-	batchDB, ok := db.DB.(ycsb.BatchDB)
-	if ok {
-		start := time.Now()
-		defer func() {
-			measure(start, "BATCH_UPDATE", err)
-		}()
-		return batchDB.BatchUpdate(ctx, table, keys, values)
-	}
-	for i := range keys {
-		err := db.DB.Update(ctx, table, keys[i], values[i])
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (db DbWrapper) Insert(ctx context.Context, table string, key string, values map[string][]byte) (err error) {
 	start := time.Now()
+	var tempVals []interface{}
+	for _, pVal := range values {
+		tempVals = append(tempVals, pVal)
+	}
+
 	defer func() {
-		measure(start, "INSERT", err)
+		measure(start, time.Now(), "INSERT", key, tempVals, err)
 	}()
 
 	return db.DB.Insert(ctx, table, key, values)
 }
 
 func (db DbWrapper) BatchInsert(ctx context.Context, table string, keys []string, values []map[string][]byte) (err error) {
-	batchDB, ok := db.DB.(ycsb.BatchDB)
-	if ok {
-		start := time.Now()
-		defer func() {
-			measure(start, "BATCH_INSERT", err)
-		}()
-		return batchDB.BatchInsert(ctx, table, keys, values)
-	}
-	for i := range keys {
-		err := db.DB.Insert(ctx, table, keys[i], values[i])
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (db DbWrapper) Delete(ctx context.Context, table string, key string) (err error) {
-	start := time.Now()
-	defer func() {
-		measure(start, "DELETE", err)
-	}()
-
-	return db.DB.Delete(ctx, table, key)
+	return nil
 }
 
 func (db DbWrapper) BatchDelete(ctx context.Context, table string, keys []string) (err error) {
-	batchDB, ok := db.DB.(ycsb.BatchDB)
-	if ok {
-		start := time.Now()
-		defer func() {
-			measure(start, "BATCH_DELETE", err)
-		}()
-		return batchDB.BatchDelete(ctx, table, keys)
-	}
-	for _, key := range keys {
-		err := db.DB.Delete(ctx, table, key)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (db DbWrapper) Analyze(ctx context.Context, table string) error {
-	if analyzeDB, ok := db.DB.(ycsb.AnalyzeDB); ok {
-		return analyzeDB.Analyze(ctx, table)
-	}
 	return nil
 }

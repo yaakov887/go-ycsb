@@ -27,16 +27,9 @@ type MeasurementInfo interface {
 // Measurement measures the operations metrics.
 type Measurement interface {
 	// Measure measures the operation latency.
-	Measure(latency time.Duration)
+	Measure(op string, start time.Time, end time.Time, key string, values []interface{})
 	// Summary returns the summary of the measurement.
 	Summary() []string
 	// Info returns the MeasurementInfo of the measurement.
 	Info() MeasurementInfo
-}
-
-// MeasurementExt measures extended operations metrics
-type MeasurementExt interface {
-	MeasureExt(op string, start time.Time, end time.Time, key string, values []interface{})
-	SummaryExt() []string
-	InfoExt() MeasurementInfo
 }

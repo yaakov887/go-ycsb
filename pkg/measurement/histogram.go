@@ -55,7 +55,8 @@ func newHistogram(p *properties.Properties) *histogram {
 	return h
 }
 
-func (h *histogram) Measure(latency time.Duration) {
+func (h *histogram) Measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
+	latency := end.Sub(start)
 	h.hist.RecordValue(latency.Microseconds())
 }
 
