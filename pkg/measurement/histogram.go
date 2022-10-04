@@ -60,6 +60,11 @@ func (h *histogram) Measure(op string, start time.Time, end time.Time, key strin
 	h.hist.RecordValue(latency.Microseconds())
 }
 
+// GetMeasurement Not meant to be implemented in a histogram
+func (h *histogram) GetMeasurement(index int) ([]string, error) {
+	return nil, nil
+}
+
 func (h *histogram) Summary() []string {
 	res := h.getInfo()
 

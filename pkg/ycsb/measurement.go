@@ -28,6 +28,8 @@ type MeasurementInfo interface {
 type Measurement interface {
 	// Measure measures the operation latency.
 	Measure(op string, start time.Time, end time.Time, key string, values []interface{})
+	// GetMeasurement returns the measurement at passed index
+	GetMeasurement(index int) ([]string, error)
 	// Summary returns the summary of the measurement.
 	Summary() []string
 	// Info returns the MeasurementInfo of the measurement.
