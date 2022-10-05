@@ -23,19 +23,27 @@ type rawseries struct {
 
 func newRawSeries(p *properties.Properties) *rawseries {
 	r := new(rawseries)
+	r.series = []rawmeasurement{}
 	return r
 }
 
 func (r *rawseries) Measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
-	rm := rawmeasurement{
+	//rm := rawmeasurement{
+	//	opType:  op,
+	//	opStart: start,
+	//	opEnd:   end,
+	//	opKey:   key,
+	//	opVals:  values,
+	//}
+	//fmt.Printf("APPEND : %+v\n", rm)
+	r.series = append(r.series, rawmeasurement{
 		opType:  op,
 		opStart: start,
 		opEnd:   end,
 		opKey:   key,
 		opVals:  values,
-	}
-
-	r.series = append(r.series, rm)
+	})
+	fmt.Printf("Latest Series : %+v\n", r.series)
 }
 
 func (r *rawseries) GetMeasurement(index int) ([]string, error) {
@@ -43,13 +51,19 @@ func (r *rawseries) GetMeasurement(index int) ([]string, error) {
 		return nil, errors.InvalidArgumentError(index)
 	}
 	line := []string{}
-	line = append(line, r.series[index].opType)
-	line = append(line, r.series[index].opStart.String())
-	line = append(line, r.series[index].opEnd.String())
-	line = append(line, r.series[index].opKey)
+	line = append(line, (r.series)[index].opType)
+	line = append(line, (r.series)[index].opStart.String())
+	line = append(line, (r.series)[index].opEnd.String())
+	line = append(line, (r.series)[index].opKey)
 	var vals []string
-	for v := range r.series[index].opVals {
-		vals = append(vals, fmt.Sprintf("%v", v))
+	for _, v := range (r.series)[index].opVals {
+		switch t := v.(type) {
+		case []byte:
+			vals = append(vals, fmt.Sprintf("%v", string(t)))
+		default:
+			vals = append(vals, fmt.Sprintf("%v", t))
+		}
+
 	}
 	line = append(line, strings.Join(vals, ","))
 

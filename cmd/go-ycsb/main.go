@@ -113,7 +113,7 @@ func initialGlobal(dbName string, onProperties func()) {
 		http.ListenAndServe(addr, nil)
 	}()
 
-	measurement.InitMeasure(globalProps)
+	measurement.RawInitMeasure(globalProps)
 
 	if len(tableName) == 0 {
 		tableName = globalProps.GetString(prop.TableName, prop.TableNameDefault)
@@ -134,7 +134,7 @@ func initialGlobal(dbName string, onProperties func()) {
 	if globalDB, err = dbCreator.Create(globalProps); err != nil {
 		util.Fatalf("create db %s failed %v", dbName, err)
 	}
-	globalDB = client.DbWrapper{globalDB}
+	globalDB = client.RawWrapper{DB: globalDB}
 }
 
 func main() {

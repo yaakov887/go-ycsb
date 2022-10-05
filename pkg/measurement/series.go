@@ -14,6 +14,7 @@
 package measurement
 
 import (
+	"fmt"
 	"github.com/pingcap/go-ycsb/pkg/util"
 	"sync"
 	"time"
@@ -35,7 +36,7 @@ type series struct {
 
 func (s *series) measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
 	s.RLock()
-	ok := s.rawSeries == nil
+	ok := s.rawSeries != nil
 	s.RUnlock()
 
 	if !ok {
@@ -50,15 +51,18 @@ func (s *series) measure(op string, start time.Time, end time.Time, key string, 
 func (s *series) output() {
 	s.RLock()
 	defer s.RUnlock()
+	//fmt.Printf("%+v\n", s.rawSeries)
 
 	lines := [][]string{}
 	var length int
 	length = s.rawSeries.Info().Get("len").(int)
+	fmt.Printf("Series Length: %v\n", length)
 
 	for i := 0; i < length; i++ {
 		meas, _ := s.rawSeries.GetMeasurement(i)
 		lines = append(lines, meas)
 	}
+	fmt.Printf("%+v\n", lines)
 
 	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStylePlain)
 	switch outputStyle {

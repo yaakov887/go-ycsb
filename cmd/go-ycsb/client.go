@@ -60,7 +60,7 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 	c.Run(globalContext)
 
 	fmt.Printf("Run finished, takes %s\n", time.Now().Sub(start))
-	measurement.Output()
+	measurement.RawOutput()
 }
 
 func runLoadCommandFunc(cmd *cobra.Command, args []string) {

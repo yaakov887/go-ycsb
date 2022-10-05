@@ -53,10 +53,10 @@ threadcount=1
 insertstart=0
 
 # The number of fields in a record
-fieldcount=10
+fieldcount=1
 
 # The size of each field (in bytes)
-fieldlength=100
+fieldlength=8
 
 # Should read all fields
 readallfields=true
