@@ -60,7 +60,12 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 	c.Run(globalContext)
 
 	fmt.Printf("Run finished, takes %s\n", time.Now().Sub(start))
-	measurement.RawOutput()
+	measurementType, _ := globalProps.Get(prop.MeasurementType)
+	if measurementType == "raw" {
+		measurement.RawOutput()
+	} else {
+		measurement.Output()
+	}
 }
 
 func runLoadCommandFunc(cmd *cobra.Command, args []string) {
@@ -78,7 +83,7 @@ var (
 )
 
 func initClientCommand(m *cobra.Command) {
-	m.Flags().StringSliceVarP(&propertyFiles, "property_file", "P", nil, "Spefify a property file")
+	m.Flags().StringSliceVarP(&propertyFiles, "property_file", "P", nil, "Specify a property file")
 	m.Flags().StringArrayVarP(&propertyValues, "prop", "p", nil, "Specify a property value with name=value")
 	m.Flags().StringVar(&tableName, "table", "", "Use the table name instead of the default \""+prop.TableNameDefault+"\"")
 	m.Flags().IntVar(&threadsArg, "threads", 1, "Execute using n threads - can also be specified as the \"threadcount\" property")

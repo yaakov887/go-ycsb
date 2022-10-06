@@ -16,6 +16,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/pingcap/go-ycsb/pkg/client"
+	"github.com/pingcap/go-ycsb/pkg/measurement"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -31,8 +33,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pingcap/go-ycsb/pkg/client"
-	"github.com/pingcap/go-ycsb/pkg/measurement"
 	"github.com/pingcap/go-ycsb/pkg/prop"
 	"github.com/pingcap/go-ycsb/pkg/util"
 	_ "github.com/pingcap/go-ycsb/pkg/workload"
@@ -113,8 +113,6 @@ func initialGlobal(dbName string, onProperties func()) {
 		http.ListenAndServe(addr, nil)
 	}()
 
-	measurement.RawInitMeasure(globalProps)
-
 	if len(tableName) == 0 {
 		tableName = globalProps.GetString(prop.TableName, prop.TableNameDefault)
 	}
@@ -134,7 +132,19 @@ func initialGlobal(dbName string, onProperties func()) {
 	if globalDB, err = dbCreator.Create(globalProps); err != nil {
 		util.Fatalf("create db %s failed %v", dbName, err)
 	}
-	globalDB = client.RawWrapper{DB: globalDB}
+
+	measurementType, ok := globalProps.Get(prop.MeasurementType)
+	if !ok {
+		measurementType = "raw"
+		globalProps.Set(prop.MeasurementType, "raw")
+	}
+	if measurementType == "raw" {
+		measurement.RawInitMeasure(globalProps)
+		globalDB = client.RawWrapper{DB: globalDB}
+	} else {
+		measurement.InitMeasure(globalProps)
+		globalDB = client.DbWrapper{DB: globalDB}
+	}
 }
 
 func main() {

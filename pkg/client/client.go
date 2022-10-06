@@ -172,6 +172,15 @@ func (c *Client) Run(ctx context.Context) {
 	wg.Add(threadCount)
 	measureCtx, measureCancel := context.WithCancel(ctx)
 	measureCh := make(chan struct{}, 1)
+	measureFunc := func() {
+		mtype, _ := c.p.Get(prop.MeasurementType)
+		if mtype == "raw" {
+			measurement.RawOutput()
+		} else {
+			measurement.Output()
+		}
+	}
+
 	go func() {
 		defer func() {
 			measureCh <- struct{}{}
@@ -195,7 +204,7 @@ func (c *Client) Run(ctx context.Context) {
 		for {
 			select {
 			case <-t.C:
-				measurement.RawOutput()
+				measureFunc()
 			case <-measureCtx.Done():
 				return
 			}
