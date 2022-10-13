@@ -5,6 +5,7 @@ import (
 	"github.com/magiconair/properties"
 	"github.com/pingcap/go-ycsb/pkg/ycsb"
 	"golang.org/x/crypto/openpgp/errors"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -28,14 +29,6 @@ func newRawSeries(p *properties.Properties) *rawseries {
 }
 
 func (r *rawseries) Measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
-	//rm := rawmeasurement{
-	//	opType:  op,
-	//	opStart: start,
-	//	opEnd:   end,
-	//	opKey:   key,
-	//	opVals:  values,
-	//}
-	//fmt.Printf("APPEND : %+v\n", rm)
 	r.series = append(r.series, rawmeasurement{
 		opType:  op,
 		opStart: start,
@@ -43,7 +36,7 @@ func (r *rawseries) Measure(op string, start time.Time, end time.Time, key strin
 		opKey:   key,
 		opVals:  values,
 	})
-	fmt.Printf("Latest Series : %+v\n", r.series)
+	//fmt.Printf("Latest Series : %+v\n", r.series)
 }
 
 func (r *rawseries) GetMeasurement(index int) ([]string, error) {
@@ -52,8 +45,8 @@ func (r *rawseries) GetMeasurement(index int) ([]string, error) {
 	}
 	line := []string{}
 	line = append(line, (r.series)[index].opType)
-	line = append(line, (r.series)[index].opStart.String())
-	line = append(line, (r.series)[index].opEnd.String())
+	line = append(line, strconv.FormatInt((r.series)[index].opStart.UnixMilli(), 10))
+	line = append(line, strconv.FormatInt((r.series)[index].opEnd.UnixMilli(), 10))
 	line = append(line, (r.series)[index].opKey)
 	var vals []string
 	for _, v := range (r.series)[index].opVals {

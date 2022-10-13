@@ -16,6 +16,7 @@ package measurement
 import (
 	"fmt"
 	"github.com/pingcap/go-ycsb/pkg/util"
+	"os"
 	"sync"
 	"time"
 
@@ -62,9 +63,15 @@ func (s *series) output() {
 		meas, _ := s.rawSeries.GetMeasurement(i)
 		lines = append(lines, meas)
 	}
-	fmt.Printf("%+v\n", lines)
+	//fmt.Printf("%+v\n", lines)
 
-	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStylePlain)
+	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStyleCSV)
+	filename := s.p.GetString(prop.CSVFileName, prop.Workload)
+	fileHandle, err := os.Create(filename)
+	if err != nil {
+		fileHandle = nil
+	}
+
 	switch outputStyle {
 	case util.OutputStylePlain:
 		util.RenderString("%-6s - %s\n", seriesheader, lines)
@@ -72,6 +79,8 @@ func (s *series) output() {
 		util.RenderJson(seriesheader, lines)
 	case util.OutputStyleTable:
 		util.RenderTable(seriesheader, lines)
+	case util.OutputStyleCSV:
+		util.RenderCSV(seriesheader, lines, fileHandle)
 	default:
 		panic("unsupported outputstyle: " + outputStyle)
 	}

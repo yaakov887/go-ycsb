@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,6 +16,7 @@ const (
 	OutputStylePlain = "plain"
 	OutputStyleTable = "table"
 	OutputStyleJson  = "json"
+	OutputStyleCSV   = "csv"
 )
 
 // RenderString renders headers and values according to the format provided
@@ -45,7 +47,7 @@ func RenderTable(headers []string, values [][]string) {
 	tb.Render()
 }
 
-// RnederJson will combine the headers and values and print a json string
+// RenderJson will combine the headers and values and print a json string
 func RenderJson(headers []string, values [][]string) {
 	if len(values) == 0 {
 		return
@@ -64,6 +66,23 @@ func RenderJson(headers []string, values [][]string) {
 		return
 	}
 	fmt.Println(string(outStr))
+}
+
+// RenderCSV will combine the headers and values into a CSV format output
+func RenderCSV(headers []string, values [][]string, file *os.File) {
+	if len(values) == 0 {
+		return
+	}
+
+	var cb *csv.Writer
+	if file == nil {
+		cb = csv.NewWriter(os.Stdout)
+	} else {
+		cb = csv.NewWriter(file)
+	}
+	cb.Write(headers)
+	cb.WriteAll(values)
+	cb.Flush()
 }
 
 // IntToString formats int value to string

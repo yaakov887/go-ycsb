@@ -113,4 +113,5 @@ const (
 	Command = "command"
 
 	OutputStyle = "outputstyle"
+	CSVFileName = "csvfilename"
 )
