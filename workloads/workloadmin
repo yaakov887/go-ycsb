@@ -203,4 +203,8 @@ timeseries.granularity=1000
 #
 # htrace.span.receiver.classes=org.apache.htrace.impl.HTracedSpanReceiver
 # htrace.htraced.receiver.address=example.com:9075
-# htrace.htraced.error.log.period.ms=10000
+# htrace.htraced.error.log.period.ms=1000
+
+outputstyle=csv
+csvfilename=testing_filename
+loadduration=30

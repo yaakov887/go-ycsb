@@ -35,6 +35,7 @@ type worker struct {
 	doBatch         bool
 	batchSize       int
 	opCount         int64
+	loadDuration    int
 	targetOpsPerMs  float64
 	threadID        int
 	targetOpsTickNs int64
@@ -52,6 +53,7 @@ func newWorker(p *properties.Properties, threadID int, threadCount int, workload
 	w.threadID = threadID
 	w.workload = workload
 	w.workDB = db
+	w.loadDuration = p.GetInt(prop.LoadDuration, prop.LoadDurationDef)
 
 	var totalOpCount int64
 	if w.doTransactions {
@@ -115,7 +117,10 @@ func (w *worker) run(ctx context.Context) {
 
 	startTime := time.Now()
 
-	for w.opCount == 0 || w.opsDone < w.opCount {
+	//for w.opCount == 0 || w.opsDone < w.opCount {
+	t := time.NewTicker(time.Duration(w.loadDuration) * time.Second)
+	//for time.Now().Sub(startTime).Seconds() < float64(w.loadDuration) {
+	for {
 		var err error
 		opsCount := 1
 		if w.doTransactions {
@@ -144,6 +149,8 @@ func (w *worker) run(ctx context.Context) {
 		}
 
 		select {
+		case <-t.C:
+			return
 		case <-ctx.Done():
 			return
 		default:
@@ -172,6 +179,7 @@ func (c *Client) Run(ctx context.Context) {
 	wg.Add(threadCount)
 	measureCtx, measureCancel := context.WithCancel(ctx)
 	measureCh := make(chan struct{}, 1)
+	//function to call output based on the measurement type for the log interval
 	measureFunc := func() {
 		mtype, _ := c.p.Get(prop.MeasurementType)
 		if mtype == "raw" {

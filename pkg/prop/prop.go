@@ -112,6 +112,8 @@ const (
 
 	Command = "command"
 
-	OutputStyle = "outputstyle"
-	CSVFileName = "csvfilename"
+	OutputStyle     = "outputstyle"
+	CSVFileName     = "csvfilename"
+	LoadDuration    = "loadduration"
+	LoadDurationDef = int(60)
 )

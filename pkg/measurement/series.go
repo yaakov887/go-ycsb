@@ -67,7 +67,7 @@ func (s *series) output() {
 
 	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStyleCSV)
 	filename := s.p.GetString(prop.CSVFileName, prop.Workload)
-	fileHandle, err := os.Create(filename)
+	fileHandle, err := os.Create(fmt.Sprintf("%v_%v.csv", filename, time.Now().UnixMilli()))
 	if err != nil {
 		fileHandle = nil
 	}
