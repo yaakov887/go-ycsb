@@ -49,12 +49,6 @@ func (c httpDBCreator) Create(p *properties.Properties) (ycsb.DB, error) {
 	fmt.Printf("%+v\n", db)
 
 	return db, nil
-	//return &httpDB{
-	//	p:      p,
-	//	domain: p.GetString(httpDomain, "localhost"),
-	//	port:   p.GetString(httpPort, "8090"),
-	//	conn:   &http.Client{},
-	//}, nil
 }
 
 func (h httpDB) GenerateURL(key string) string {
@@ -85,7 +79,7 @@ func (h httpDB) CleanupThread(ctx context.Context) {}
 // fields: The list of fields to read, nil|empty for reading all.
 func (h httpDB) Read(ctx context.Context, table string, key string, fields []string) (map[string][]byte, error) {
 	tempURL := h.GenerateURL(key)
-	fmt.Printf("GET tempURL: %v\n", tempURL)
+	//fmt.Printf("GET tempURL: %v\n", tempURL)
 
 	resp, err := h.conn.Get(tempURL)
 
@@ -125,16 +119,11 @@ func (h httpDB) Update(ctx context.Context, table string, key string, values map
 	}
 	tempURL := h.GenerateURL(key)
 	tempURL = fmt.Sprintf("%v?value=%v", tempURL, tempVal)
-	fmt.Printf("PUT tempURL: %v\n", tempURL)
+	//fmt.Printf("PUT tempURL: %v\n", tempURL)
 
 	req, err := http.NewRequest("PUT", tempURL, nil)
 	_, err = h.conn.Do(req)
 
-	//tempValues := make(url.Values)
-	//for k, v := range values {
-	//	tempValues.Add(k, string(v))
-	//}
-	//resp, err := h.conn.PostForm(tempURL, tempValues)
 	if err != nil {
 		return err
 	}
@@ -155,7 +144,7 @@ func (h httpDB) Insert(ctx context.Context, table string, key string, values map
 	}
 	tempURL := h.GenerateURL(key)
 	tempURL = fmt.Sprintf("%v?value=%v", tempURL, tempVal)
-	fmt.Printf("PUT tempURL: %v\n", tempURL)
+	//fmt.Printf("PUT tempURL: %v\n", tempURL)
 
 	req, err := http.NewRequest("PUT", tempURL, nil)
 	_, err = h.conn.Do(req)

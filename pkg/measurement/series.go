@@ -32,7 +32,7 @@ type series struct {
 
 	p *properties.Properties
 
-	rawSeries ycsb.Measurement
+	rawSeries *rawseries
 }
 
 func (s *series) measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
@@ -42,11 +42,11 @@ func (s *series) measure(op string, start time.Time, end time.Time, key string, 
 
 	if !ok {
 		s.Lock()
-		s.rawSeries = newRawSeries(s.p)
+		s.rawSeries = newRawSeries()
 		s.Unlock()
 	}
 
-	s.rawSeries.Measure(op, start, end, key, values)
+	(s.rawSeries).Measure(op, start, end, key, values)
 }
 
 func (s *series) output() {
@@ -56,18 +56,23 @@ func (s *series) output() {
 
 	lines := [][]string{}
 	var length int
-	length = s.rawSeries.Info().Get("len").(int)
+	length = (s.rawSeries).Info().Get("len").(int)
 	fmt.Printf("Series Length: %v\n", length)
 
 	for i := 0; i < length; i++ {
-		meas, _ := s.rawSeries.GetMeasurement(i)
+		meas, _ := (s.rawSeries).GetMeasurement(i)
 		lines = append(lines, meas)
 	}
 	//fmt.Printf("%+v\n", lines)
 
 	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStyleCSV)
 	filename := s.p.GetString(prop.CSVFileName, prop.Workload)
-	fileHandle, err := os.Create(fmt.Sprintf("%v_%v.csv", filename, time.Now().UnixMilli()))
+	fileHandle, err := os.Create(fmt.Sprintf(
+		"%v_%v_%v.csv",
+		filename,
+		time.Now().UnixMilli(),
+		s.rawSeries.Info().Get("len"),
+	))
 	if err != nil {
 		fileHandle = nil
 	}
@@ -84,26 +89,39 @@ func (s *series) output() {
 	default:
 		panic("unsupported outputstyle: " + outputStyle)
 	}
+	fmt.Printf("Completed output of %v\n", fileHandle)
 }
 
 func (s *series) info() ycsb.MeasurementInfo {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.rawSeries.Info()
+	return (s.rawSeries).Info()
 }
 
 // RawInitMeasure initializes the global measurement.
 func RawInitMeasure(p *properties.Properties) {
 	globalRawMeasure = new(series)
 	globalRawMeasure.p = p
-	globalRawMeasure.rawSeries = new(rawseries)
+	globalRawMeasure.rawSeries = newRawSeries()
 	EnableWarmUp(p.GetInt64(prop.WarmUpTime, 0) > 0)
 }
 
 // RawOutput prints the measurement summary.
 func RawOutput() {
-	globalRawMeasure.output()
+	var outputReference *rawseries
+
+	globalRawMeasure.Lock()
+	outputReference = globalRawMeasure.rawSeries
+	globalRawMeasure.rawSeries = newRawSeries()
+	globalRawMeasure.Unlock()
+
+	var outputSeries = &series{
+		RWMutex:   sync.RWMutex{},
+		p:         globalRawMeasure.p,
+		rawSeries: outputReference,
+	}
+	outputSeries.output()
 }
 
 // RawMeasure measures the operation.

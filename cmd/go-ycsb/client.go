@@ -26,6 +26,10 @@ import (
 
 func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
 	dbName := args[0]
+	fmt.Printf("%v\n", cmd)
+	fmt.Printf("%v\n", args)
+	fmt.Printf("%v\n", doTransactions)
+	fmt.Printf("%v\n", command)
 
 	initialGlobal(dbName, func() {
 		doTransFlag := "true"

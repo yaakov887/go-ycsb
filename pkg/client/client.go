@@ -109,6 +109,7 @@ func (w *worker) throttle(ctx context.Context, startTime time.Time) {
 	}
 }
 
+// run - worker executes a number of operations
 func (w *worker) run(ctx context.Context) {
 	// spread the thread operation out so they don't all hit the DB at the same time
 	if w.targetOpsPerMs > 0.0 && w.targetOpsPerMs <= 1.0 {
@@ -117,10 +118,7 @@ func (w *worker) run(ctx context.Context) {
 
 	startTime := time.Now()
 
-	//for w.opCount == 0 || w.opsDone < w.opCount {
-	t := time.NewTicker(time.Duration(w.loadDuration) * time.Second)
-	//for time.Now().Sub(startTime).Seconds() < float64(w.loadDuration) {
-	for {
+	for w.opCount == 0 || w.opsDone < w.opCount {
 		var err error
 		opsCount := 1
 		if w.doTransactions {
@@ -149,9 +147,39 @@ func (w *worker) run(ctx context.Context) {
 		}
 
 		select {
-		case <-t.C:
-			return
 		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+func (w *worker) runDuration(ctx context.Context, startTime time.Time) {
+	timeLeft := (time.Duration(w.loadDuration) * time.Second) - time.Now().Sub(startTime)
+	t := time.NewTicker(timeLeft)
+
+	for {
+		var err error
+		if w.doTransactions {
+			if w.doBatch {
+				err = w.workload.DoBatchTransaction(ctx, w.batchSize, w.workDB)
+			} else {
+				err = w.workload.DoTransaction(ctx, w.workDB)
+			}
+		} else {
+			if w.doBatch {
+				err = w.workload.DoBatchInsert(ctx, w.batchSize, w.workDB)
+			} else {
+				err = w.workload.DoInsert(ctx, w.workDB)
+			}
+		}
+
+		if err != nil && !w.p.GetBool(prop.Silence, prop.SilenceDefault) {
+			fmt.Printf("operation err: %v\n", err)
+		}
+
+		select {
+		case <-t.C:
 			return
 		default:
 		}
@@ -175,12 +203,19 @@ func NewClient(p *properties.Properties, workload ycsb.Workload, db ycsb.DB) *Cl
 func (c *Client) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	threadCount := c.p.GetInt(prop.ThreadCount, 1)
+	interval := c.p.GetInt64(prop.LogInterval, 10)
+	outputThreads := int64(c.p.GetInt(prop.LoadDuration, prop.LoadDurationDef)) / interval
+	totalThreads := threadCount
+	if c.p.GetString(prop.LoadMode, prop.LoadModeDef) == "duration" {
+		totalThreads = totalThreads + int(outputThreads)
+	}
 
-	wg.Add(threadCount)
+	wg.Add(totalThreads)
 	measureCtx, measureCancel := context.WithCancel(ctx)
 	measureCh := make(chan struct{}, 1)
 	//function to call output based on the measurement type for the log interval
 	measureFunc := func() {
+		defer wg.Done()
 		mtype, _ := c.p.Get(prop.MeasurementType)
 		if mtype == "raw" {
 			measurement.RawOutput()
@@ -205,8 +240,7 @@ func (c *Client) Run(ctx context.Context) {
 		// finish warming up
 		measurement.EnableWarmUp(false)
 
-		dur := c.p.GetInt64(prop.LogInterval, 10)
-		t := time.NewTicker(time.Duration(dur) * time.Second)
+		t := time.NewTicker(time.Duration(interval) * time.Second)
 		defer t.Stop()
 
 		for {
@@ -219,17 +253,33 @@ func (c *Client) Run(ctx context.Context) {
 		}
 	}()
 
-	for i := 0; i < threadCount; i++ {
-		go func(threadId int) {
-			defer wg.Done()
+	if c.p.GetString(prop.LoadMode, prop.LoadModeDef) == "operationcount" {
+		for i := 0; i < threadCount; i++ {
+			go func(threadId int) {
+				defer wg.Done()
 
-			w := newWorker(c.p, threadId, threadCount, c.workload, c.db)
-			ctx := c.workload.InitThread(ctx, threadId, threadCount)
-			ctx = c.db.InitThread(ctx, threadId, threadCount)
-			w.run(ctx)
-			c.db.CleanupThread(ctx)
-			c.workload.CleanupThread(ctx)
-		}(i)
+				w := newWorker(c.p, threadId, threadCount, c.workload, c.db)
+				ctx := c.workload.InitThread(ctx, threadId, threadCount)
+				ctx = c.db.InitThread(ctx, threadId, threadCount)
+				w.run(ctx)
+				c.db.CleanupThread(ctx)
+				c.workload.CleanupThread(ctx)
+			}(i)
+		}
+	} else {
+		startTime := time.Now()
+		for i := 0; i < threadCount; i++ {
+			go func(threadId int) {
+				defer wg.Done()
+
+				w := newWorker(c.p, threadId, threadCount, c.workload, c.db)
+				ctx := c.workload.InitThread(ctx, threadId, threadCount)
+				ctx = c.db.InitThread(ctx, threadId, threadCount)
+				w.runDuration(ctx, startTime)
+				c.db.CleanupThread(ctx)
+				c.workload.CleanupThread(ctx)
+			}(i)
+		}
 	}
 
 	wg.Wait()

@@ -112,6 +112,8 @@ const (
 
 	Command = "command"
 
+	LoadMode        = "loadmode"
+	LoadModeDef     = "operationcount"
 	OutputStyle     = "outputstyle"
 	CSVFileName     = "csvfilename"
 	LoadDuration    = "loadduration"

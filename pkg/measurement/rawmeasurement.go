@@ -2,7 +2,6 @@ package measurement
 
 import (
 	"fmt"
-	"github.com/magiconair/properties"
 	"github.com/pingcap/go-ycsb/pkg/ycsb"
 	"golang.org/x/crypto/openpgp/errors"
 	"strconv"
@@ -19,17 +18,15 @@ type rawmeasurement struct {
 }
 
 type rawseries struct {
-	series []rawmeasurement
+	series *[]rawmeasurement
 }
 
-func newRawSeries(p *properties.Properties) *rawseries {
-	r := new(rawseries)
-	r.series = []rawmeasurement{}
-	return r
+func newRawSeries() *rawseries {
+	return &rawseries{series: new([]rawmeasurement)}
 }
 
 func (r *rawseries) Measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
-	r.series = append(r.series, rawmeasurement{
+	*r.series = append(*r.series, rawmeasurement{
 		opType:  op,
 		opStart: start,
 		opEnd:   end,
@@ -40,16 +37,16 @@ func (r *rawseries) Measure(op string, start time.Time, end time.Time, key strin
 }
 
 func (r *rawseries) GetMeasurement(index int) ([]string, error) {
-	if len(r.series) == 0 || index > len(r.series) || index < 0 {
+	if len(*r.series) == 0 || index > len(*r.series) || index < 0 {
 		return nil, errors.InvalidArgumentError(index)
 	}
 	line := []string{}
-	line = append(line, (r.series)[index].opType)
-	line = append(line, strconv.FormatInt((r.series)[index].opStart.UnixMilli(), 10))
-	line = append(line, strconv.FormatInt((r.series)[index].opEnd.UnixMilli(), 10))
-	line = append(line, (r.series)[index].opKey)
+	line = append(line, (*r.series)[index].opType)
+	line = append(line, strconv.FormatInt((*r.series)[index].opStart.UnixMilli(), 10))
+	line = append(line, strconv.FormatInt((*r.series)[index].opEnd.UnixMilli(), 10))
+	line = append(line, (*r.series)[index].opKey)
 	var vals []string
-	for _, v := range (r.series)[index].opVals {
+	for _, v := range (*r.series)[index].opVals {
 		switch t := v.(type) {
 		case []byte:
 			vals = append(vals, fmt.Sprintf("%v", string(t)))
@@ -70,7 +67,7 @@ func (r *rawseries) Summary() []string {
 
 func (r *rawseries) Info() ycsb.MeasurementInfo {
 	tempInfo := make(map[string]interface{})
-	tempInfo["len"] = len(r.series)
+	tempInfo["len"] = len(*r.series)
 	return newRawmeasurementInfo(tempInfo)
 }
 
