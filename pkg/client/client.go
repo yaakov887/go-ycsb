@@ -213,21 +213,21 @@ func (c *Client) Run(ctx context.Context) {
 	wg.Add(totalThreads)
 	measureCtx, measureCancel := context.WithCancel(ctx)
 	measureCh := make(chan struct{}, 1)
-	//function to call output based on the measurement type for the log interval
-	measureFunc := func() {
-		defer wg.Done()
-		mtype, _ := c.p.Get(prop.MeasurementType)
-		if mtype == "raw" {
-			measurement.RawOutput()
-		} else {
-			measurement.Output()
-		}
-	}
 
 	go func() {
 		defer func() {
 			measureCh <- struct{}{}
 		}()
+		//function to call output based on the measurement type for the log interval
+		mtype := c.p.GetString(prop.MeasurementType, "raw")
+		measureFunc := func() {
+			defer wg.Done()
+			if mtype == "raw" {
+				measurement.RawOutput()
+			} else {
+				measurement.Output()
+			}
+		}
 		// load stage no need to warm up
 		if c.p.GetBool(prop.DoTransactions, true) {
 			dur := c.p.GetInt64(prop.WarmUpTime, 0)

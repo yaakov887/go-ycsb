@@ -43,7 +43,7 @@ recordcount=10
 operationcount=100
 
 # The number of thread.
-threadcount=3
+threadcount=5
 
 # The number of insertions to do, if different from recordcount.
 # Used with insertstart to grow an existing table.
@@ -208,5 +208,5 @@ timeseries.granularity=1000
 outputstyle=csv
 csvfilename=testing_filename
 loadduration=30
-measurement.interval=11
+measurement.interval=10
 loadmode=duration

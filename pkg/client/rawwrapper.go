@@ -70,17 +70,15 @@ func (db RawWrapper) Scan(ctx context.Context, table string, startKey string, co
 }
 
 func (db RawWrapper) Update(ctx context.Context, table string, key string, values map[string][]byte) (err error) {
-	start := time.Now()
 	var tempVals []interface{}
 	for _, pVal := range values {
 		tempVals = append(tempVals, pVal)
 	}
 
-	defer func() {
-		rawmeasure(start, time.Now(), "UPDATE", key, tempVals, err)
-	}()
-
-	return db.DB.Update(ctx, table, key, values)
+	start := time.Now()
+	err = db.DB.Update(ctx, table, key, values)
+	rawmeasure(start, time.Now(), "UPDATE", key, tempVals, err)
+	return err
 }
 
 func (db RawWrapper) BatchUpdate(ctx context.Context, table string, keys []string, values []map[string][]byte) (err error) {

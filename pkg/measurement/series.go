@@ -36,22 +36,17 @@ type series struct {
 }
 
 func (s *series) measure(op string, start time.Time, end time.Time, key string, values []interface{}) {
-	s.RLock()
-	ok := s.rawSeries != nil
-	s.RUnlock()
-
-	if !ok {
-		s.Lock()
+	s.Lock()
+	defer s.Unlock()
+	if s.rawSeries == nil {
 		s.rawSeries = newRawSeries()
-		s.Unlock()
 	}
-
 	(s.rawSeries).Measure(op, start, end, key, values)
 }
 
 func (s *series) output() {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 	//fmt.Printf("%+v\n", s.rawSeries)
 
 	lines := [][]string{}
@@ -60,8 +55,12 @@ func (s *series) output() {
 	fmt.Printf("Series Length: %v\n", length)
 
 	for i := 0; i < length; i++ {
-		meas, _ := (s.rawSeries).GetMeasurement(i)
-		lines = append(lines, meas)
+		meas, err := (s.rawSeries).GetMeasurement(i)
+		if err == nil {
+			lines = append(lines, meas)
+		} else {
+			fmt.Printf("%v\n", err.Error())
+		}
 	}
 	//fmt.Printf("%+v\n", lines)
 
