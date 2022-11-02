@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pingcap/go-ycsb/pkg/nodectrl"
 	"strconv"
 	"time"
 
@@ -26,10 +27,6 @@ import (
 
 func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
 	dbName := args[0]
-	fmt.Printf("%v\n", cmd)
-	fmt.Printf("%v\n", args)
-	fmt.Printf("%v\n", doTransactions)
-	fmt.Printf("%v\n", command)
 
 	initialGlobal(dbName, func() {
 		doTransFlag := "true"
@@ -80,6 +77,25 @@ func runTransCommandFunc(cmd *cobra.Command, args []string) {
 	runClientCommandFunc(cmd, args, true, "run")
 }
 
+func runStartNodesCommandFunc(cmd *cobra.Command, args []string) {
+	initialGlobalProps(func() {})
+
+	fmt.Println("***************** properties *****************")
+	for key, value := range globalProps.Map() {
+		fmt.Printf("\"%s\"=\"%s\"\n", key, value)
+	}
+	fmt.Println("**********************************************")
+
+	nodectrl.ParseNodeList(globalProps.GetString(prop.Cluster, "./cluster.json"))
+	nodectrl.StartNodes()
+	return
+}
+
+func runStopNodesCommandFunc(cmd *cobra.Command, args []string) {
+	//TODO fill out stub
+	return
+}
+
 var (
 	threadsArg     int
 	targetArg      int
@@ -93,6 +109,10 @@ func initClientCommand(m *cobra.Command) {
 	m.Flags().IntVar(&threadsArg, "threads", 1, "Execute using n threads - can also be specified as the \"threadcount\" property")
 	m.Flags().IntVar(&targetArg, "target", 0, "Attempt to do n operations per second (default: unlimited) - can also be specified as the \"target\" property")
 	m.Flags().IntVar(&reportInterval, "interval", 10, "Interval of outputting measurements in seconds")
+}
+
+func initNodeCommand(m *cobra.Command) {
+	m.Flags().StringSliceVarP(&propertyFiles, "property_file", "P", nil, "Specify a property file")
 }
 
 func newLoadCommand() *cobra.Command {
@@ -116,5 +136,29 @@ func newRunCommand() *cobra.Command {
 	}
 
 	initClientCommand(m)
+	return m
+}
+
+func newStartNodesCommand() *cobra.Command {
+	m := &cobra.Command{
+		Use:   "startnodes",
+		Short: "YCSB start nodes",
+		Args:  cobra.NoArgs,
+		Run:   runStartNodesCommandFunc,
+	}
+
+	initNodeCommand(m)
+	return m
+}
+
+func newStopNodesCommand() *cobra.Command {
+	m := &cobra.Command{
+		Use:   "stopnodes",
+		Short: "YCSB stop nodes",
+		Args:  cobra.NoArgs,
+		Run:   runStopNodesCommandFunc,
+	}
+
+	initNodeCommand(m)
 	return m
 }

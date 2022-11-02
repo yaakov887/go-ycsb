@@ -210,3 +210,4 @@ csvfilename=testing_filename
 loadduration=30
 measurement.interval=10
 loadmode=duration
+cluster=./workloads/cluster.json

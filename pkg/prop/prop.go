@@ -118,4 +118,5 @@ const (
 	CSVFileName     = "csvfilename"
 	LoadDuration    = "loadduration"
 	LoadDurationDef = int(60)
+	Cluster         = "cluster"
 )

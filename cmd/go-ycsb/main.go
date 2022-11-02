@@ -147,7 +147,32 @@ func initialGlobal(dbName string, onProperties func()) {
 	}
 }
 
+func initialGlobalProps(onProperties func()) {
+	globalProps = properties.NewProperties()
+	if len(propertyFiles) > 0 {
+		globalProps = properties.MustLoadFiles(propertyFiles, properties.UTF8, false)
+	}
+
+	for _, prop := range propertyValues {
+		seps := strings.SplitN(prop, "=", 2)
+		if len(seps) != 2 {
+			log.Fatalf("bad property: `%s`, expected format `name=value`", prop)
+		}
+		globalProps.Set(seps[0], seps[1])
+	}
+
+	if onProperties != nil {
+		onProperties()
+	}
+
+	addr := globalProps.GetString(prop.DebugPprof, prop.DebugPprofDefault)
+	go func() {
+		http.ListenAndServe(addr, nil)
+	}()
+}
+
 func main() {
+	time.Sleep(30 * time.Second)
 	globalContext, globalCancel = context.WithCancel(context.Background())
 
 	sc := make(chan os.Signal, 1)
@@ -185,6 +210,8 @@ func main() {
 		newShellCommand(),
 		newLoadCommand(),
 		newRunCommand(),
+		newStartNodesCommand(),
+		newStopNodesCommand(),
 	)
 
 	cobra.EnablePrefixMatching = true

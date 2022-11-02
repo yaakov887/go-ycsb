@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    {
+      "nodeID": "1",
+      "IP": "127.0.0.1:1234",
+      "username": "test",
+      "keyfile": "key.pem"
+    },
+    {
+      "nodeID": "2",
+      "IP": "127.0.0.2:1234",
+      "username": "test",
+      "keyfile": "key.pem"
+    }
+  ]
+}
