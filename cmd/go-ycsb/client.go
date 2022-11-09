@@ -92,7 +92,16 @@ func runStartNodesCommandFunc(cmd *cobra.Command, args []string) {
 }
 
 func runStopNodesCommandFunc(cmd *cobra.Command, args []string) {
-	//TODO fill out stub
+	initialGlobalProps(func() {})
+
+	fmt.Println("***************** properties *****************")
+	for key, value := range globalProps.Map() {
+		fmt.Printf("\"%s\"=\"%s\"\n", key, value)
+	}
+	fmt.Println("**********************************************")
+
+	nodectrl.ParseNodeList(globalProps.GetString(prop.Cluster, "./cluster.json"))
+	nodectrl.StopNodes()
 	return
 }
 

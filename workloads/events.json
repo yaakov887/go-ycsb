@@ -1,0 +1,26 @@
+{
+  "events" : [
+    {
+      "time": 10,
+      "actions": [
+        {
+          "nodeid": "1",
+          "cmd": "stop"
+        }
+      ]
+    },
+    {
+      "time": 20,
+      "actions": [
+        {
+          "nodeid": "2",
+          "cmd":"stop"
+        },
+        {
+          "nodeid":"1",
+          "cmd": "start"
+        }
+      ]
+    }
+  ]
+}
