@@ -2,8 +2,11 @@ package workload
 
 import (
 	"encoding/json"
+	"github.com/pingcap/go-ycsb/pkg/nodectrl"
+	"log"
 	"os"
 	"sort"
+	"time"
 )
 
 type Action struct {
@@ -52,6 +55,41 @@ func ParseEventList(jsonSource string) error {
 
 	globalEventWorkload = tempList
 	sort.Sort(globalEventWorkload.Events)
+
+	return nil
+}
+
+func (e *Event) executeAllActions() {
+	for _, a := range e.Actions {
+		err := nodectrl.RunNodeCommand(a.NodeID, a.Command)
+		if err != nil {
+			log.Printf("ERROR [executeAllActions] (%v:%v) - %v\n", a.NodeID, a.Command, err.Error())
+		}
+	}
+}
+
+func StartEventWorkload(jsonSource string) error {
+	var err error
+	if globalEventWorkload.Events == nil || len(globalEventWorkload.Events) <= 0 {
+		err = ParseEventList(jsonSource)
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, event := range globalEventWorkload.Events {
+		go func() {
+			t := time.NewTicker(time.Duration(event.RelativeTime) * time.Second)
+			for {
+				select {
+				case <-t.C:
+					event.executeAllActions()
+					return
+				}
+
+			}
+		}()
+	}
 
 	return nil
 }

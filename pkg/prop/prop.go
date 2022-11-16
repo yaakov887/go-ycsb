@@ -119,4 +119,5 @@ const (
 	LoadDuration    = "loadduration"
 	LoadDurationDef = int(60)
 	Cluster         = "cluster"
+	Events          = "events"
 )

@@ -16,6 +16,7 @@ package main
 import (
 	"fmt"
 	"github.com/pingcap/go-ycsb/pkg/nodectrl"
+	"github.com/pingcap/go-ycsb/pkg/workload"
 	"strconv"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 )
 
 func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
+	time.Sleep(30 * time.Second)
 	dbName := args[0]
 
 	initialGlobal(dbName, func() {
@@ -55,6 +57,22 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 		fmt.Printf("\"%s\"=\"%s\"\n", key, value)
 	}
 	fmt.Println("**********************************************")
+
+	eventSrc := globalProps.GetString(prop.Events, "")
+	nodeSrc := globalProps.GetString(prop.Cluster, "")
+	if nodeSrc != "" {
+		err := nodectrl.ParseNodeList(nodeSrc)
+		if err == nil {
+			if eventSrc != "" {
+				err = workload.StartEventWorkload(eventSrc)
+				if err != nil {
+					fmt.Printf("Error creating workload events [%v]\n", err.Error())
+				}
+			}
+		} else {
+			fmt.Printf("Error parsing node info [%v]\n", err.Error())
+		}
+	}
 
 	c := client.NewClient(globalProps, globalWorkload, globalDB)
 	start := time.Now()

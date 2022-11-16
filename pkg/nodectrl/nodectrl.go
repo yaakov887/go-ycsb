@@ -56,6 +56,15 @@ func ParseNodeList(jsonSource string) error {
 	return err
 }
 
+func getNodeById(nodeId string) (*Node, error) {
+	for _, node := range globalNodeList.Nodes {
+		if node.Id == nodeId {
+			return &node, nil
+		}
+	}
+	return nil, errors.New(fmt.Sprintf("Node id [%v] not found", nodeId))
+}
+
 // startNode executes the start command for the referenced node
 func (n *Node) startNode() error {
 	var startCmd string
@@ -108,12 +117,11 @@ func StartNodes() error {
 
 // StartNodeById starts the node specified by the node id
 func StartNodeById(nodeId string) error {
-	for _, node := range globalNodeList.Nodes {
-		if node.Id == nodeId {
-			return node.startNode()
-		}
+	node, err := getNodeById(nodeId)
+	if err != nil {
+		return err
 	}
-	return errors.New(fmt.Sprintf("Node id [%v] to start not found", nodeId))
+	return node.startNode()
 }
 
 // stopNode connects to the node and calls the kill command with the process id stored
@@ -158,12 +166,76 @@ func StopNodes() error {
 
 // StopNodeById stops the node specified by the node id
 func StopNodeById(nodeId string) error {
-	for _, node := range globalNodeList.Nodes {
-		if node.Id == nodeId {
-			return node.stopNode()
-		}
+	node, err := getNodeById(nodeId)
+	if err != nil {
+		return err
 	}
-	return errors.New(fmt.Sprintf("Node id [%v] to stop not found", nodeId))
+	return node.stopNode()
+}
+
+// RunNodeCommand executes the command passed on the node specified by id—
+func RunNodeCommand(nodeId, command string) error {
+	node, err := getNodeById(nodeId)
+	if err != nil {
+		return err
+	}
+	return RunSSHCommand(node.IpAddrStr, node.Username, node.KeyFile, command)
+}
+
+// RunSSHCommand run a command over ssh connection
+func RunSSHCommand(ipAddr, userName, keyFile, command string) error {
+	if ipAddr == "" {
+		return errors.New("[RunSSHCommand] IP Address required")
+	}
+	if userName == "" {
+		return errors.New("[RunSSHCommand] Username required")
+	}
+	if keyFile == "" {
+		return errors.New("[RunSSHCommand] Key file required")
+	}
+	if command == "" {
+		return errors.New("[RunSSHCommand] Command required")
+	}
+
+	sshClient, err := generateSSHClientConfig(userName, keyFile)
+	if err != nil {
+		return err
+	}
+
+	client, err := ssh.Dial("tcp", ipAddr, sshClient)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	return session.Run(command)
+}
+
+// generateSSHClientConfig create the ssh client config from the username and keyfile provided
+func generateSSHClientConfig(userName, keyFile string) (*ssh.ClientConfig, error) {
+	var hostKey ssh.PublicKey
+	key, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return &ssh.ClientConfig{
+		Config: ssh.Config{},
+		User:   userName,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.FixedHostKey(hostKey),
+	}, nil
 }
 
 var globalNodeList NodeList
