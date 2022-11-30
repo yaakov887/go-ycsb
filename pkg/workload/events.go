@@ -2,6 +2,7 @@ package workload
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pingcap/go-ycsb/pkg/nodectrl"
 	"log"
 	"os"
@@ -59,8 +60,11 @@ func ParseEventList(jsonSource string) error {
 	return nil
 }
 
+// executeAllActions runs the command on the node specified for all actions in the event's list
 func (e *Event) executeAllActions() {
+	fmt.Printf("Executing node actions (Count:%v)\n", len(e.Actions))
 	for _, a := range e.Actions {
+		fmt.Printf("[executeAllActions] (%v:%v)\n", a.NodeID, a.Command)
 		err := nodectrl.RunNodeCommand(a.NodeID, a.Command)
 		if err != nil {
 			log.Printf("ERROR [executeAllActions] (%v:%v) - %v\n", a.NodeID, a.Command, err.Error())
@@ -68,6 +72,8 @@ func (e *Event) executeAllActions() {
 	}
 }
 
+// StartEventWorkload spins off multiple go routines to execute the events
+// at the time relative to the start of the workload
 func StartEventWorkload(jsonSource string) error {
 	var err error
 	if globalEventWorkload.Events == nil || len(globalEventWorkload.Events) <= 0 {
@@ -78,17 +84,21 @@ func StartEventWorkload(jsonSource string) error {
 	}
 
 	for _, event := range globalEventWorkload.Events {
-		go func() {
-			t := time.NewTicker(time.Duration(event.RelativeTime) * time.Second)
+		fmt.Printf("Spinning off event {Relative Time:%v, Action Count:%v}\n",
+			event.RelativeTime, len(event.Actions))
+		ticker := time.NewTicker(time.Duration(event.RelativeTime) * time.Second)
+		go func(e Event, t *time.Ticker) {
 			for {
 				select {
-				case <-t.C:
-					event.executeAllActions()
+				case execTime := <-t.C:
+					fmt.Printf("%v Executing event {Relative Time:%v, Action Count:%v}\n",
+						execTime, e.RelativeTime, len(e.Actions))
+					e.executeAllActions()
+					t.Stop()
 					return
 				}
-
 			}
-		}()
+		}(event, ticker)
 	}
 
 	return nil
