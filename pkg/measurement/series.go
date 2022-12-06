@@ -52,7 +52,7 @@ func (s *series) output() {
 	lines := [][]string{}
 	var length int
 	length = (s.rawSeries).Info().Get("len").(int)
-	fmt.Printf("Series Length: %v\n", length)
+	//fmt.Printf("Series Length: %v\n", length)
 
 	for i := 0; i < length; i++ {
 		meas, err := (s.rawSeries).GetMeasurement(i)
@@ -88,7 +88,7 @@ func (s *series) output() {
 	default:
 		panic("unsupported outputstyle: " + outputStyle)
 	}
-	fmt.Printf("Completed output of %v\n", fileHandle)
+	//fmt.Printf("Completed output of %v\n", fileHandle)
 }
 
 func (s *series) info() ycsb.MeasurementInfo {

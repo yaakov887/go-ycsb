@@ -15,43 +15,27 @@ package main
 
 import (
 	"fmt"
+	"github.com/pingcap/go-ycsb/pkg/client"
+	"github.com/pingcap/go-ycsb/pkg/measurement"
 	"github.com/pingcap/go-ycsb/pkg/nodectrl"
 	"github.com/pingcap/go-ycsb/pkg/workload"
 	"strconv"
 	"time"
 
-	"github.com/pingcap/go-ycsb/pkg/client"
-	"github.com/pingcap/go-ycsb/pkg/measurement"
 	"github.com/pingcap/go-ycsb/pkg/prop"
 	"github.com/spf13/cobra"
 )
 
-func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
-	time.Sleep(30 * time.Second)
-	dbName := args[0]
+func runNodeCommandFunc(cmd *cobra.Command, args []string, wt string) {
+	switch wt {
+	case "startnodes":
+		runStartNodesCommandFunc(cmd, args)
+	case "stopnodes":
+		runStopNodesCommandFunc(cmd, args)
+	}
+}
 
-	initialGlobal(dbName, func() {
-		doTransFlag := "true"
-		if !doTransactions {
-			doTransFlag = "false"
-		}
-		globalProps.Set(prop.DoTransactions, doTransFlag)
-		globalProps.Set(prop.Command, command)
-
-		if cmd.Flags().Changed("threads") {
-			// We set the threadArg via command line.
-			globalProps.Set(prop.ThreadCount, strconv.Itoa(threadsArg))
-		}
-
-		if cmd.Flags().Changed("target") {
-			globalProps.Set(prop.Target, strconv.Itoa(targetArg))
-		}
-
-		if cmd.Flags().Changed("interval") {
-			globalProps.Set(prop.LogInterval, strconv.Itoa(reportInterval))
-		}
-	})
-
+func runCoreWorkloadCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
 	fmt.Println("***************** properties *****************")
 	for key, value := range globalProps.Map() {
 		fmt.Printf("\"%s\"=\"%s\"\n", key, value)
@@ -87,12 +71,72 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 	}
 }
 
+func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
+	time.Sleep(30 * time.Second)
+	dbName := args[0]
+
+	initialGlobal(dbName, func() {
+		doTransFlag := "true"
+		if !doTransactions {
+			doTransFlag = "false"
+		}
+		globalProps.Set(prop.DoTransactions, doTransFlag)
+		globalProps.Set(prop.Command, command)
+
+		if cmd.Flags().Changed("threads") {
+			// We set the threadArg via command line.
+			globalProps.Set(prop.ThreadCount, strconv.Itoa(threadsArg))
+		}
+
+		if cmd.Flags().Changed("target") {
+			globalProps.Set(prop.Target, strconv.Itoa(targetArg))
+		}
+
+		if cmd.Flags().Changed("interval") {
+			globalProps.Set(prop.LogInterval, strconv.Itoa(reportInterval))
+		}
+	})
+
+	workType := globalProps.GetString(prop.Workload, "core")
+
+	switch workType {
+	case "core":
+		runCoreWorkloadCommandFunc(cmd, args, doTransactions, command)
+	case "startnodes":
+	case "stopnodes":
+		runNodeCommandFunc(cmd, args, workType)
+	default:
+		fmt.Printf("[ERROR] Invalid workload property value: %v\n", workType)
+	}
+}
+
 func runLoadCommandFunc(cmd *cobra.Command, args []string) {
-	runClientCommandFunc(cmd, args, false, "load")
+	if len(propertyFiles) > 0 {
+		for i, work := range propertyFiles {
+			currentWork = work
+			fmt.Printf("Loading workload %v %v...\n", i+1, currentWork)
+			runClientCommandFunc(cmd, args, false, "load")
+			fmt.Printf("Completed workload %v %v...\n", i+1, currentWork)
+		}
+	} else {
+		currentWork = ""
+		runClientCommandFunc(cmd, args, false, "load")
+	}
 }
 
 func runTransCommandFunc(cmd *cobra.Command, args []string) {
-	runClientCommandFunc(cmd, args, true, "run")
+	time.Sleep(30 * time.Second)
+	if len(propertyFiles) > 0 {
+		for i, work := range propertyFiles {
+			currentWork = work
+			fmt.Printf("Running workload %v %v...\n", i+1, currentWork)
+			runClientCommandFunc(cmd, args, true, "run")
+			fmt.Printf("Completed workload %v %v...\n", i+1, currentWork)
+		}
+	} else {
+		currentWork = ""
+		runClientCommandFunc(cmd, args, true, "run")
+	}
 }
 
 func runStartNodesCommandFunc(cmd *cobra.Command, args []string) {
@@ -118,7 +162,9 @@ func runStopNodesCommandFunc(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println("**********************************************")
 
-	nodectrl.ParseNodeList(globalProps.GetString(prop.Cluster, "./cluster.json"))
+	if !nodectrl.NodesParsed() {
+		nodectrl.ParseNodeList(globalProps.GetString(prop.Cluster, "./cluster.json"))
+	}
 	nodectrl.StopNodes()
 	return
 }
@@ -140,6 +186,7 @@ func initClientCommand(m *cobra.Command) {
 
 func initNodeCommand(m *cobra.Command) {
 	m.Flags().StringSliceVarP(&propertyFiles, "property_file", "P", nil, "Specify a property file")
+	m.Flags().StringArrayVarP(&propertyValues, "prop", "p", nil, "Specify a property value with name=value")
 }
 
 func newLoadCommand() *cobra.Command {

@@ -6,6 +6,10 @@
         {
           "nodeid": "1",
           "cmd": "stop"
+        },
+        {
+          "nodeid": "2",
+          "cmd" : "stop"
         }
       ]
     },
@@ -14,7 +18,7 @@
       "actions": [
         {
           "nodeid": "2",
-          "cmd":"stop"
+          "cmd":"start"
         },
         {
           "nodeid":"1",

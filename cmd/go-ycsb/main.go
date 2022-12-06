@@ -78,6 +78,7 @@ import (
 
 var (
 	propertyFiles  []string
+	currentWork    string
 	propertyValues []string
 	dbName         string
 	tableName      string
@@ -92,8 +93,8 @@ var (
 
 func initialGlobal(dbName string, onProperties func()) {
 	globalProps = properties.NewProperties()
-	if len(propertyFiles) > 0 {
-		globalProps = properties.MustLoadFiles(propertyFiles, properties.UTF8, false)
+	if currentWork != "" {
+		globalProps = properties.MustLoadFile(currentWork, properties.UTF8)
 	}
 
 	for _, prop := range propertyValues {
@@ -149,8 +150,8 @@ func initialGlobal(dbName string, onProperties func()) {
 
 func initialGlobalProps(onProperties func()) {
 	globalProps = properties.NewProperties()
-	if len(propertyFiles) > 0 {
-		globalProps = properties.MustLoadFiles(propertyFiles, properties.UTF8, false)
+	if currentWork != "" {
+		globalProps = properties.MustLoadFile(currentWork, properties.UTF8)
 	}
 
 	for _, prop := range propertyValues {
@@ -172,7 +173,6 @@ func initialGlobalProps(onProperties func()) {
 }
 
 func main() {
-	time.Sleep(30 * time.Second)
 	globalContext, globalCancel = context.WithCancel(context.Background())
 
 	sc := make(chan os.Signal, 1)

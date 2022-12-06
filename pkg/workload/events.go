@@ -64,8 +64,9 @@ func ParseEventList(jsonSource string) error {
 func (e *Event) executeAllActions() {
 	fmt.Printf("Executing node actions (Count:%v)\n", len(e.Actions))
 	for _, a := range e.Actions {
-		fmt.Printf("[executeAllActions] (%v:%v)\n", a.NodeID, a.Command)
+		fmt.Printf("[executeAllActions] Pre Command Call (%v:%v)\n", a.NodeID, a.Command)
 		err := nodectrl.RunNodeCommand(a.NodeID, a.Command)
+		fmt.Printf("[executeAllActions] Post Command Call (%v:%v)\n", a.NodeID, a.Command)
 		if err != nil {
 			log.Printf("ERROR [executeAllActions] (%v:%v) - %v\n", a.NodeID, a.Command, err.Error())
 		}
@@ -86,19 +87,15 @@ func StartEventWorkload(jsonSource string) error {
 	for _, event := range globalEventWorkload.Events {
 		fmt.Printf("Spinning off event {Relative Time:%v, Action Count:%v}\n",
 			event.RelativeTime, len(event.Actions))
-		ticker := time.NewTicker(time.Duration(event.RelativeTime) * time.Second)
-		go func(e Event, t *time.Ticker) {
-			for {
-				select {
-				case execTime := <-t.C:
-					fmt.Printf("%v Executing event {Relative Time:%v, Action Count:%v}\n",
-						execTime, e.RelativeTime, len(e.Actions))
-					e.executeAllActions()
-					t.Stop()
-					return
-				}
-			}
-		}(event, ticker)
+		timer := time.NewTimer(time.Duration(event.RelativeTime) * time.Second)
+		go func(e Event, t *time.Timer) {
+			<-t.C
+			fmt.Printf("%v Executing event {Relative Time:%v, Action Count:%v}\n",
+				time.Now(), e.RelativeTime, len(e.Actions))
+			e.executeAllActions()
+			t.Stop()
+			return
+		}(event, timer)
 	}
 
 	return nil

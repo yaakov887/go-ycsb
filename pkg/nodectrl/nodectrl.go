@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"os"
 	"regexp"
+	"time"
 )
 
 type Node struct {
@@ -54,6 +55,19 @@ func ParseNodeList(jsonSource string) error {
 	}
 
 	return err
+}
+
+func NodesParsed() bool {
+	return len(globalNodeList.Nodes) > 0
+}
+
+func NodesStarted() bool {
+	for _, node := range globalNodeList.Nodes {
+		if node.pid != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func getNodeById(nodeId string) (*Node, error) {
@@ -235,6 +249,7 @@ func generateSSHClientConfig(userName, keyFile string) (*ssh.ClientConfig, error
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: ssh.FixedHostKey(hostKey),
+		Timeout:         2 * time.Second,
 	}, nil
 }
 
