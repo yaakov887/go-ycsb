@@ -35,27 +35,28 @@ func runNodeCommandFunc(cmd *cobra.Command, args []string, wt string) {
 	}
 }
 
-func runCoreWorkloadCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
+func runCoreWorkloadCommandFunc() {
 	fmt.Println("***************** properties *****************")
 	for key, value := range globalProps.Map() {
 		fmt.Printf("\"%s\"=\"%s\"\n", key, value)
 	}
 	fmt.Println("**********************************************")
 
-	eventSrc := globalProps.GetString(prop.Events, "")
-	nodeSrc := globalProps.GetString(prop.Cluster, "")
-	if nodeSrc != "" {
-		err := nodectrl.ParseNodeList(nodeSrc)
-		if err == nil {
-			if eventSrc != "" {
-				err = workload.StartEventWorkload(eventSrc)
-				if err != nil {
-					fmt.Printf("Error creating workload events [%v]\n", err.Error())
-				}
+	var err error
+	if !nodectrl.NodesParsed() {
+		nodeSrc := globalProps.GetString(prop.Cluster, "")
+		err = nodectrl.ParseNodeList(nodeSrc)
+	}
+	if err == nil {
+		eventSrc := globalProps.GetString(prop.Events, "")
+		if eventSrc != "" {
+			err = workload.StartEventWorkload(eventSrc)
+			if err != nil {
+				fmt.Printf("Error creating workload events [%v]\n", err.Error())
 			}
-		} else {
-			fmt.Printf("Error parsing node info [%v]\n", err.Error())
 		}
+	} else {
+		fmt.Printf("Error parsing node info [%v]\n", err.Error())
 	}
 
 	c := client.NewClient(globalProps, globalWorkload, globalDB)
@@ -101,7 +102,7 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 
 	switch workType {
 	case "core":
-		runCoreWorkloadCommandFunc(cmd, args, doTransactions, command)
+		runCoreWorkloadCommandFunc()
 	case "startnodes":
 	case "stopnodes":
 		runNodeCommandFunc(cmd, args, workType)

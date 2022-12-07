@@ -141,15 +141,16 @@ func StartNodeById(nodeId string) error {
 // stopNode connects to the node and calls the kill command with the process id stored
 func (n *Node) stopNode() error {
 	client, err := ssh.Dial("tcp", n.IpAddrStr, &n.sshClient)
+	if err != nil {
+		return err
+	}
 	defer client.Close()
-	if err != nil {
-		return err
-	}
+
 	session, err := client.NewSession()
-	defer session.Close()
 	if err != nil {
 		return err
 	}
+	defer session.Close()
 
 	var b bytes.Buffer
 	session.Stdout = &b
@@ -168,6 +169,9 @@ func StopNodes() error {
 	for _, node := range globalNodeList.Nodes {
 		err := node.stopNode()
 		if err != nil {
+			if errMap == nil {
+				errMap = make(map[string]error)
+			}
 			errMap[node.Id] = err
 		}
 	}

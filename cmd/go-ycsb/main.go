@@ -119,6 +119,9 @@ func initialGlobal(dbName string, onProperties func()) {
 	}
 
 	workloadName := globalProps.GetString(prop.Workload, "core")
+	if workloadName != "core" {
+		return
+	}
 	workloadCreator := ycsb.GetWorkloadCreator(workloadName)
 
 	var err error
