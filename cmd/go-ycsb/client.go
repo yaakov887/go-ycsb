@@ -19,6 +19,7 @@ import (
 	"github.com/pingcap/go-ycsb/pkg/measurement"
 	"github.com/pingcap/go-ycsb/pkg/nodectrl"
 	"github.com/pingcap/go-ycsb/pkg/workload"
+	"github.com/pingcap/go-ycsb/pkg/ycsbchecker"
 	"strconv"
 	"time"
 
@@ -69,6 +70,12 @@ func runCoreWorkloadCommandFunc() {
 		measurement.RawOutput()
 	} else {
 		measurement.Output()
+	}
+
+	checkerType := globalProps.GetString(prop.Checker, "")
+	filePrefix := globalProps.GetString(prop.CSVFileName, "")
+	if checkerType != "" {
+		err = ycsbchecker.RunChecker(checkerType, filePrefix)
 	}
 }
 

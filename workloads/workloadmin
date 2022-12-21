@@ -212,3 +212,4 @@ measurement.interval=10
 loadmode=duration
 cluster=./workloads/cluster.json
 events=./workloads/events.json
+checker=linearizable

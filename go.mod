@@ -41,6 +41,7 @@ require (
 	cloud.google.com/go v0.103.0 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
+	github.com/ailidani/paxi v0.0.0-20211115042200-768848a3ef10 // indirect
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect

@@ -120,4 +120,5 @@ const (
 	LoadDurationDef = int(60)
 	Cluster         = "cluster"
 	Events          = "events"
+	Checker         = "checker"
 )

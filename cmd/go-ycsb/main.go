@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/magiconair/properties"
-
 	// Register workload
 
 	"github.com/spf13/cobra"
