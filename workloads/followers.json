@@ -1,0 +1,16 @@
+{
+  "followers": [
+    {
+      "followerID": "france",
+      "IP": "127.0.0.1:1234",
+      "username": "pierre",
+      "keyfile": "key.pem"
+    },
+    {
+      "followerID": "germany",
+      "IP": "127.0.0.2:1234",
+      "username": "klaus",
+      "keyfile": "key.pem"
+    }
+  ]
+}

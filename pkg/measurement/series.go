@@ -66,9 +66,12 @@ func (s *series) output() {
 
 	outputStyle := s.p.GetString(prop.OutputStyle, util.OutputStyleCSV)
 	filename := s.p.GetString(prop.CSVFileName, prop.Workload)
+	followerName := s.p.GetString(prop.FollowerName, "primary")
+
 	fileHandle, err := os.Create(fmt.Sprintf(
-		"%v_%v_%v.csv",
+		"%v_%v_%v_%v.csv",
 		filename,
+		followerName,
 		time.Now().UnixMilli(),
 		s.rawSeries.Info().Get("len"),
 	))

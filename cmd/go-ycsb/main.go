@@ -81,6 +81,7 @@ var (
 	propertyValues []string
 	dbName         string
 	tableName      string
+	followerName   string
 
 	globalContext context.Context
 	globalCancel  context.CancelFunc

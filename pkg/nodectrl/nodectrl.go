@@ -191,13 +191,38 @@ func StopNodeById(nodeId string) error {
 	return node.stopNode()
 }
 
+func (n *Node) runNodeCmd(command string) error {
+	if &n.sshClient == nil {
+		sshClient, err := GenerateSSHClientConfig(n.Username, n.KeyFile)
+		if err != nil {
+			return err
+		}
+		n.sshClient = *sshClient
+	}
+
+	client, err := ssh.Dial("tcp", n.IpAddrStr, &n.sshClient)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	return session.Run(command)
+
+}
+
 // RunNodeCommand executes the command passed on the node specified by id—
 func RunNodeCommand(nodeId, command string) error {
 	node, err := getNodeById(nodeId)
 	if err != nil {
 		return err
 	}
-	return RunSSHCommand(node.IpAddrStr, node.Username, node.KeyFile, command)
+	return node.runNodeCmd(command)
 }
 
 // RunSSHCommand run a command over ssh connection
@@ -215,7 +240,7 @@ func RunSSHCommand(ipAddr, userName, keyFile, command string) error {
 		return errors.New("[RunSSHCommand] Command required")
 	}
 
-	sshClient, err := generateSSHClientConfig(userName, keyFile)
+	sshClient, err := GenerateSSHClientConfig(userName, keyFile)
 	if err != nil {
 		return err
 	}
@@ -236,7 +261,7 @@ func RunSSHCommand(ipAddr, userName, keyFile, command string) error {
 }
 
 // generateSSHClientConfig create the ssh client config from the username and keyfile provided
-func generateSSHClientConfig(userName, keyFile string) (*ssh.ClientConfig, error) {
+func GenerateSSHClientConfig(userName, keyFile string) (*ssh.ClientConfig, error) {
 	var hostKey ssh.PublicKey
 	key, err := os.ReadFile(keyFile)
 	if err != nil {

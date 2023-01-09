@@ -121,4 +121,6 @@ const (
 	Cluster         = "cluster"
 	Events          = "events"
 	Checker         = "checker"
+	FollowerName    = "follower"
+	FollowerList    = "followerlist"
 )

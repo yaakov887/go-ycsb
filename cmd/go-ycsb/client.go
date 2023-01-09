@@ -60,6 +60,16 @@ func runCoreWorkloadCommandFunc() {
 		fmt.Printf("Error parsing node info [%v]\n", err.Error())
 	}
 
+	//Follower Setup
+	followerSrc := globalProps.GetString(prop.FollowerList, "")
+	if followerSrc != "" {
+		err = nodectrl.ParseFollowerList(followerSrc)
+		if err == nil {
+			nodectrl.StartFollowers(dbName, currentWork)
+		}
+	}
+
+	//Run the client
 	c := client.NewClient(globalProps, globalWorkload, globalDB)
 	start := time.Now()
 	c.Run(globalContext)
@@ -77,6 +87,10 @@ func runCoreWorkloadCommandFunc() {
 	if checkerType != "" {
 		err = ycsbchecker.RunChecker(checkerType, filePrefix)
 	}
+
+	if nodectrl.FollowersStarted() {
+		nodectrl.GetFollowersFiles()
+	}
 }
 
 func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool, command string) {
@@ -90,6 +104,11 @@ func runClientCommandFunc(cmd *cobra.Command, args []string, doTransactions bool
 		}
 		globalProps.Set(prop.DoTransactions, doTransFlag)
 		globalProps.Set(prop.Command, command)
+
+		if cmd.Flags().Changed("follower") {
+			// We set the follower name via command line.
+			globalProps.Set(prop.FollowerName, followerName)
+		}
 
 		if cmd.Flags().Changed("threads") {
 			// We set the threadArg via command line.
@@ -186,6 +205,7 @@ var (
 func initClientCommand(m *cobra.Command) {
 	m.Flags().StringSliceVarP(&propertyFiles, "property_file", "P", nil, "Specify a property file")
 	m.Flags().StringArrayVarP(&propertyValues, "prop", "p", nil, "Specify a property value with name=value")
+	m.Flags().StringVarP(&followerName, "follower", "F", "", "Specify the name of the follower for output file differentiation")
 	m.Flags().StringVar(&tableName, "table", "", "Use the table name instead of the default \""+prop.TableNameDefault+"\"")
 	m.Flags().IntVar(&threadsArg, "threads", 1, "Execute using n threads - can also be specified as the \"threadcount\" property")
 	m.Flags().IntVar(&targetArg, "target", 0, "Attempt to do n operations per second (default: unlimited) - can also be specified as the \"target\" property")
