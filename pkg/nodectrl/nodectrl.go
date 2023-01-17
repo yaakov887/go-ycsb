@@ -2,9 +2,11 @@ package nodectrl
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pingcap/go-ycsb/pkg/util"
 	"golang.org/x/crypto/ssh"
 	"os"
 	"regexp"
@@ -24,6 +26,65 @@ type Node struct {
 type NodeList struct {
 	Nodes        []Node `json:"nodes"`
 	StartCommand string `json:"startcommand"`
+}
+
+var pidHeader = []string{"nodeid", "pid"}
+
+const (
+	pidFileName = "pid_output.csv"
+)
+
+// updateNodePid updates the node, based on the Node ID, with the PID passed
+func updateNodePid(nodeid, pid string) {
+	for _, node := range globalNodeList.Nodes {
+		if node.Id == nodeid {
+			node.pid = pid
+		}
+	}
+}
+
+// writeNodePids Write the Node Process IDs to a CSV for eventual reading and stopping of the nodes
+func writeNodePids() error {
+	err := os.Remove(pidFileName)
+	file, err := os.Create(pidFileName)
+	if err != nil {
+		return err
+	}
+
+	var values [][]string
+	for _, node := range globalNodeList.Nodes {
+		var tempValues []string
+		tempValues = append(tempValues, node.Id)
+		tempValues = append(tempValues, node.pid)
+		values = append(values)
+	}
+
+	util.RenderCSV(pidHeader, values, file)
+
+	return file.Close()
+}
+
+// readNodePids read the Node Process IDs from the CSV file
+func readNodePids() error {
+	file, err := os.Open(pidFileName)
+	if err != nil {
+		return err
+	}
+
+	r, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		return err
+	}
+
+	for i, record := range r {
+		if i == 0 {
+			continue
+		}
+
+		updateNodePid(record[0], record[1])
+	}
+
+	return nil
 }
 
 // ParseNodeList read the JSON formatted file for the cluster information
@@ -57,10 +118,12 @@ func ParseNodeList(jsonSource string) error {
 	return err
 }
 
+// NodesParsed returns true if the globalNodeList is not empty
 func NodesParsed() bool {
 	return len(globalNodeList.Nodes) > 0
 }
 
+// NodesStarted returns true if any of the nodes have a PID set
 func NodesStarted() bool {
 	for _, node := range globalNodeList.Nodes {
 		if node.pid != "" {
@@ -70,6 +133,7 @@ func NodesStarted() bool {
 	return false
 }
 
+// getNodeById returns the node based on the ID passed
 func getNodeById(nodeId string) (*Node, error) {
 	for _, node := range globalNodeList.Nodes {
 		if node.Id == nodeId {
@@ -125,6 +189,7 @@ func StartNodes() error {
 	if len(errMap) > 0 {
 		return errors.New(fmt.Sprintf("Error starting nodes: %v", errMap))
 	} else {
+		writeNodePids()
 		return nil
 	}
 }
@@ -165,6 +230,10 @@ func (n *Node) stopNode() error {
 
 // StopNodes stops all nodes specified by the cluster file
 func StopNodes() error {
+	if !NodesStarted() {
+		readNodePids()
+	}
+
 	var errMap map[string]error
 	for _, node := range globalNodeList.Nodes {
 		err := node.stopNode()
@@ -191,6 +260,7 @@ func StopNodeById(nodeId string) error {
 	return node.stopNode()
 }
 
+// runNodeCmd executes the command passed on the referenced node
 func (n *Node) runNodeCmd(command string) error {
 	if &n.sshClient == nil {
 		sshClient, err := GenerateSSHClientConfig(n.Username, n.KeyFile)

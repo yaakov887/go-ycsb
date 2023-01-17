@@ -1,6 +1,7 @@
 package ycsbchecker
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
@@ -50,8 +51,16 @@ func runLinearizable(prefix string) error {
 		err = errors.New(fmt.Sprintf("[ERROR] Linearizable check returned errors for %v files\n", fileErrors))
 	} else {
 		anomalies := history.Linearizable()
-		fmt.Printf("Linearizable check returned %v anomalies\n", anomalies)
-		err = nil
+		nf, err2 := os.Create(prefix + "_Linearizable_Checker.txt")
+		if err2 != nil {
+			defer nf.Close()
+			nw := bufio.NewWriter(nf)
+			fmt.Fprintf(nw, "Linearizable check returned %v anomalies\n", anomalies)
+			nw.Flush()
+		} else {
+			fmt.Printf("Linearizable check returned %v anomalies\n", anomalies)
+		}
+		err = err2
 	}
 
 	return err
